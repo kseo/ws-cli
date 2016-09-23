@@ -2,3 +2,5 @@ package: github.com/kseo/ws-cli
 import:
 - package: github.com/gorilla/websocket
   version: ^1.0.0
+- package: github.com/chzyer/readline
+  version: ^1.4.0
