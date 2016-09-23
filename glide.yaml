@@ -1,2 +1,4 @@
 package: github.com/kseo/ws-cli
-import: []
+import:
+- package: github.com/gorilla/websocket
+  version: ^1.0.0
