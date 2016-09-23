@@ -59,6 +59,10 @@ func send(conn *ws.Conn, rl *readline.Instance) {
 func main() {
 	var url = flag.String("url", "", "url")
 	flag.Parse()
+	if *url == "" {
+		flag.Usage()
+		return
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
