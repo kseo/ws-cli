@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"sync"
 
+	"github.com/chzyer/readline"
 	ws "github.com/gorilla/websocket"
 )
 
@@ -18,32 +18,41 @@ var dialer = ws.Dialer{
 	WriteBufferSize: 1024,
 }
 
-func recv(conn *ws.Conn, wg *sync.WaitGroup) {
+func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
 			wg.Done()
 			break
 		}
-		var message = string(p)
-		fmt.Printf("< %s\n", message)
+		buf := new(bytes.Buffer)
+		buf.WriteString("< ")
+		buf.Write(p)
+		buf.WriteRune('\n')
+
+		rl.Stdout().Write(buf.Bytes())
 	}
 }
 
-func send(conn *ws.Conn) {
-	reader := bufio.NewReader(os.Stdin)
+func send(conn *ws.Conn, rl *readline.Instance) {
 	defer conn.Close()
 
 	for {
-		fmt.Print("> ")
-		p, err := reader.ReadBytes('\n')
-		if err == io.EOF {
+		line, err := rl.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Fatalf("ReadBytes: %v", err)
+			log.Fatalf("ReadLine: %v", err)
 		}
+
 		// Remove the new line from the string.
-		conn.WriteMessage(ws.TextMessage, (p[0 : len(p)-1]))
+		conn.WriteMessage(ws.TextMessage, []byte(line))
 	}
 }
 
@@ -58,9 +67,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Dial: %v", err)
 	}
+	fmt.Println("connected (press CTRL+C to quit)")
 
-	go recv(conn, &wg)
-	send(conn)
+	rl, err := readline.New("> ")
+	if err != nil {
+		log.Fatalf("New: %v", err)
+	}
+	defer rl.Close()
+
+	go recv(conn, rl, &wg)
+	send(conn, rl)
 
 	wg.Wait()
 }
