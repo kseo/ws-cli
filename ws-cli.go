@@ -12,12 +12,6 @@ import (
 	ws "github.com/gorilla/websocket"
 )
 
-var dialer = ws.Dialer{
-	Subprotocols:    []string{"p1", "p2"},
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
 func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 	for {
 		_, p, err := conn.ReadMessage()
@@ -58,6 +52,7 @@ func send(conn *ws.Conn, rl *readline.Instance) {
 
 func main() {
 	var url = flag.String("url", "", "url")
+	var subprotocol = flag.String("subprotocol", "", "optional subprotocol")
 	flag.Parse()
 	if *url == "" {
 		flag.Usage()
@@ -66,6 +61,16 @@ func main() {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
+
+	var subprotocols []string
+	if *subprotocol != "" {
+		subprotocols = []string{*subprotocol}
+	}
+	dialer := ws.Dialer{
+		Subprotocols:    subprotocols,
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
 
 	conn, _, err := dialer.Dial(*url, nil)
 	if err != nil {
