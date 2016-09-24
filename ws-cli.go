@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"sync"
 
 	"github.com/chzyer/readline"
@@ -52,6 +53,7 @@ func send(conn *ws.Conn, rl *readline.Instance) {
 
 func main() {
 	var url = flag.String("url", "", "url")
+	var origin = flag.String("origin", "", "optional origin")
 	var subprotocol = flag.String("subprotocol", "", "optional subprotocol")
 	flag.Parse()
 	if *url == "" {
@@ -66,13 +68,17 @@ func main() {
 	if *subprotocol != "" {
 		subprotocols = []string{*subprotocol}
 	}
+	var header http.Header
+	if *origin != "" {
+		header = http.Header{"Origin": {*origin}}
+	}
 	dialer := ws.Dialer{
 		Subprotocols:    subprotocols,
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 
-	conn, _, err := dialer.Dial(*url, nil)
+	conn, _, err := dialer.Dial(*url, header)
 	if err != nil {
 		log.Fatalf("Dial: %v", err)
 	}
