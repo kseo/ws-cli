@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -20,12 +19,7 @@ func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 			wg.Done()
 			break
 		}
-		buf := new(bytes.Buffer)
-		buf.WriteString("< ")
-		buf.Write(p)
-		buf.WriteRune('\n')
-
-		rl.Stdout().Write(buf.Bytes())
+		fmt.Fprintf(rl.Stdout(), "< %s\n", string(p))
 	}
 }
 
