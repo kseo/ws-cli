@@ -51,6 +51,27 @@ func send(conn *ws.Conn, rl *readline.Instance) {
 	}
 }
 
+func dial(url string, origin string, subprotocol string) (*ws.Conn, error) {
+	var subprotocols []string
+	var header http.Header
+
+	if subprotocol != "" {
+		subprotocols = []string{subprotocol}
+	}
+	if origin != "" {
+		header = http.Header{"Origin": {origin}}
+	}
+
+	dialer := ws.Dialer{
+		Subprotocols:    subprotocols,
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	conn, _, err := dialer.Dial(url, header)
+	return conn, err
+}
+
 func main() {
 	var url = flag.String("url", "", "url")
 	var origin = flag.String("origin", "", "optional origin")
@@ -64,21 +85,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var subprotocols []string
-	if *subprotocol != "" {
-		subprotocols = []string{*subprotocol}
-	}
-	var header http.Header
-	if *origin != "" {
-		header = http.Header{"Origin": {*origin}}
-	}
-	dialer := ws.Dialer{
-		Subprotocols:    subprotocols,
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	conn, _, err := dialer.Dial(*url, header)
+	conn, err := dial(*url, *origin, *subprotocol)
 	if err != nil {
 		log.Fatalf("Dial: %v", err)
 	}
