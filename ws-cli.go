@@ -86,18 +86,10 @@ func main() {
 	}
 	fmt.Println("connected (press CTRL+C to quit)")
 
-	reader, writer := io.Pipe()
-	interrupt := func() {
-		fmt.Fprintf(writer, "%c", readline.CharInterrupt)
-	}
-
-	var mr MultiReader
-	mr.Add(os.Stdin)
-	mr.Add(reader)
-
+	stdin := NewInterruptibleStdin(os.Stdin)
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt: "> ",
-		Stdin:  &mr,
+		Stdin:  stdin,
 	})
 	if err != nil {
 		log.Fatalf("New: %v", err)
@@ -107,7 +99,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go recv(conn, rl, &wg, interrupt)
+	go recv(conn, rl, &wg, stdin.interrupt)
 	go send(conn, rl, &wg)
 
 	wg.Wait()
