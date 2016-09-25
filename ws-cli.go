@@ -37,11 +37,7 @@ func send(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 	for {
 		line, err := rl.Readline()
 		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				break
-			} else {
-				continue
-			}
+			break
 		} else if err == io.EOF {
 			break
 		} else if err != nil {
