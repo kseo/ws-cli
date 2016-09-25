@@ -7,24 +7,32 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"syscall"
 
 	"github.com/chzyer/readline"
 	ws "github.com/gorilla/websocket"
 )
 
 func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
+	defer func() {
+		wg.Done()
+		syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	}()
+
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			wg.Done()
 			break
 		}
 		fmt.Fprintf(rl.Stdout(), "< %s\n", string(p))
 	}
 }
 
-func send(conn *ws.Conn, rl *readline.Instance) {
-	defer conn.Close()
+func send(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
+	defer func() {
+		wg.Done()
+		conn.Close()
+	}()
 
 	for {
 		line, err := rl.Readline()
@@ -76,9 +84,6 @@ func main() {
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
 	conn, err := dial(*url, *origin, *subprotocol)
 	if err != nil {
 		log.Fatalf("Dial: %v", err)
@@ -91,8 +96,13 @@ func main() {
 	}
 	defer rl.Close()
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go recv(conn, rl, &wg)
-	send(conn, rl)
+	go send(conn, rl, &wg)
 
 	wg.Wait()
+
+	fmt.Println("Disconnected")
 }
