@@ -6,17 +6,17 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
-	"syscall"
 
 	"github.com/chzyer/readline"
 	ws "github.com/gorilla/websocket"
 )
 
-func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
+func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup, interrupt func()) {
 	defer func() {
+		interrupt()
 		wg.Done()
-		syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 	}()
 
 	for {
@@ -30,8 +30,8 @@ func recv(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 
 func send(conn *ws.Conn, rl *readline.Instance, wg *sync.WaitGroup) {
 	defer func() {
-		wg.Done()
 		conn.Close()
+		wg.Done()
 	}()
 
 	for {
@@ -90,7 +90,19 @@ func main() {
 	}
 	fmt.Println("connected (press CTRL+C to quit)")
 
-	rl, err := readline.New("> ")
+	reader, writer := io.Pipe()
+	interrupt := func() {
+		fmt.Fprintf(writer, "%c", readline.CharInterrupt)
+	}
+
+	var mr MultiReader
+	mr.Add(os.Stdin)
+	mr.Add(reader)
+
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt: "> ",
+		Stdin:  &mr,
+	})
 	if err != nil {
 		log.Fatalf("New: %v", err)
 	}
@@ -99,7 +111,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	go recv(conn, rl, &wg)
+	go recv(conn, rl, &wg, interrupt)
 	go send(conn, rl, &wg)
 
 	wg.Wait()
