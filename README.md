@@ -11,7 +11,7 @@ go get github.com/kseo/ws-cli
 ## Usage
 
 ```
-$ we-cli -url ws://echo.websocket.org
+$ ws-cli -url ws://echo.websocket.org
 connected (press CTRL+C to quit)
 > hi there
 < hi there
