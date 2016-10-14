@@ -86,7 +86,7 @@ func main() {
 	}
 	fmt.Println("connected (press CTRL+C to quit)")
 
-	stdin := NewInterruptibleStdin(os.Stdin)
+	stdin := newInterruptibleStdin(os.Stdin)
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt: "> ",
 		Stdin:  stdin,

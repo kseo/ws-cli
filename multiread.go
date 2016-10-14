@@ -6,9 +6,9 @@ import (
 	"sync"
 )
 
-var ErrClosedIO = errors.New("This I/O has been closed")
+var errClosedIO = errors.New("This I/O has been closed")
 
-type MultiReader struct {
+type multiReader struct {
 	sync.RWMutex
 	r       *io.PipeReader
 	w       *io.PipeWriter
@@ -16,11 +16,11 @@ type MultiReader struct {
 	closed  bool
 }
 
-func (mr *MultiReader) init() error {
+func (mr *multiReader) init() error {
 	mr.RLock()
 	if mr.closed {
 		mr.RUnlock()
-		return ErrClosedIO
+		return errClosedIO
 	}
 	init := false
 	if mr.r == nil || mr.w == nil {
@@ -36,14 +36,14 @@ func (mr *MultiReader) init() error {
 	return nil
 }
 
-func (mr *MultiReader) Read(buf []byte) (int, error) {
+func (mr *multiReader) Read(buf []byte) (int, error) {
 	if err := mr.init(); err != nil {
 		return -1, err
 	}
 	return mr.r.Read(buf)
 }
 
-func (mr *MultiReader) Close() error {
+func (mr *multiReader) Close() error {
 	mr.Lock()
 	defer mr.Unlock()
 
@@ -63,7 +63,7 @@ func (mr *MultiReader) Close() error {
 	return err
 }
 
-func (mr *MultiReader) Add(src io.ReadCloser) error {
+func (mr *multiReader) Add(src io.ReadCloser) error {
 	if err := mr.init(); err != nil {
 		return err
 	}
